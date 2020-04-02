@@ -107,7 +107,7 @@ namespace Mod30Functions
                             description = blobRef.Metadata[DESCRIPTION];
                         }
                         
-                        var fileExtension = uri.Substring(uri.LastIndexOf(".")-1);
+                        var fileExtension = uri.Substring(uri.LastIndexOf("."));
 
                         var thumbRef = container.GetBlockBlobReference(cloudBlob.Name.Replace(fileExtension, $"_thumb{fileExtension}"));
                         string thumbnail = await thumbRef.ExistsAsync() ? uri.Replace(fileExtension, $"_thumb{fileExtension}") : string.Empty;
@@ -153,7 +153,7 @@ namespace Mod30Functions
                 var client = account.CreateCloudBlobClient();
                 var container = client.GetContainerReference(CONTAINER);
                 var blockBlob = container.GetBlockBlobReference(name);
-                var fileExtension = name.Substring(name.LastIndexOf(".")-1);
+                var fileExtension = name.Substring(name.LastIndexOf("."));
                 var otherBlob = container.GetBlockBlobReference(name.Replace(fileExtension, $"_thumb{fileExtension}"));
                 // add metadata to orginal file
                 await UpdateMetadata(blockBlob, description);
@@ -216,7 +216,7 @@ namespace Mod30Functions
             var client = account.CreateCloudBlobClient();
             var container = client.GetContainerReference(CONTAINER);
             var blockBlob = container.GetBlockBlobReference(name);
-            var fileExtension = name.Substring(name.LastIndexOf(".")-1);
+            var fileExtension = name.Substring(name.LastIndexOf("."));
             using (var inputStream = await blockBlob.OpenReadAsync())
             {
                 // check to see if a thumbnail already exists, and if so, exit.
