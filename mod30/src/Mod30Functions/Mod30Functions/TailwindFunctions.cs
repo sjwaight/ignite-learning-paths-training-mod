@@ -19,6 +19,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Mod30Functions
 {
+
     public static class TailwindFunctions
     {
         static string ConnectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
@@ -94,7 +95,8 @@ namespace Mod30Functions
                 foreach (var item in response.Results)
                 {
                     var uri = item.Uri.ToString();
-                    if (!uri.Contains("_thumb.jpg"))
+                    if ((uri.EndsWith("jpg") || uri.EndsWith("jpeg") || uri.EndsWith("png")) 
+                        && !uri.Contains("_thumb."))
                     {
                         var cloudBlob = new CloudBlob(item.Uri);
                         var blobRef = container.GetBlockBlobReference(cloudBlob.Name);
@@ -104,9 +106,11 @@ namespace Mod30Functions
                         {
                             description = blobRef.Metadata[DESCRIPTION];
                         }
-                        var thumbRef = container.GetBlockBlobReference(cloudBlob.Name.Replace(".jpg", "_thumb.jpg"));
-                        string thumbnail = await thumbRef.ExistsAsync() ?
-                            uri.Replace(".jpg", "_thumb.jpg") : string.Empty;
+                        
+                        var fileExtension = uri.Substring(uri.LastIndexOf(".")-1);
+
+                        var thumbRef = container.GetBlockBlobReference(cloudBlob.Name.Replace(fileExtension, $"_thumb{fileExtension}"));
+                        string thumbnail = await thumbRef.ExistsAsync() ? uri.Replace(fileExtension, $"_thumb{fileExtension}") : string.Empty;
                         var entry = new
                         {
                             Thumbnail = thumbnail,
@@ -149,9 +153,11 @@ namespace Mod30Functions
                 var client = account.CreateCloudBlobClient();
                 var container = client.GetContainerReference(CONTAINER);
                 var blockBlob = container.GetBlockBlobReference(name);
-                var otherBlob =
-                    container.GetBlockBlobReference(name.Replace(".jpg", "_thumb.jpg"));
+                var fileExtension = name.Substring(name.LastIndexOf(".")-1);
+                var otherBlob = container.GetBlockBlobReference(name.Replace(fileExtension, $"_thumb{fileExtension}"));
+                // add metadata to orginal file
                 await UpdateMetadata(blockBlob, description);
+                // add metadata to thumbnail file
                 await UpdateMetadata(otherBlob, description);
                 return new OkResult();
             }
@@ -197,8 +203,9 @@ namespace Mod30Functions
         private static async Task<bool> MakeThumb(string url, ILogger log)
         {
             log.LogInformation("Attempting to process url {url}", url);
-            if (url.Contains("_thumb.jpg"))
+            if (url.Contains("_thumb."))
             {
+                // we don't try and create a thumbnail from an existing thumbnail
                 log.LogInformation("URL passed is thumbnail.");
                 return false;
             }
@@ -209,25 +216,28 @@ namespace Mod30Functions
             var client = account.CreateCloudBlobClient();
             var container = client.GetContainerReference(CONTAINER);
             var blockBlob = container.GetBlockBlobReference(name);
+            var fileExtension = name.Substring(name.LastIndexOf(".")-1);
             using (var inputStream = await blockBlob.OpenReadAsync())
             {
-                var thumb = container.GetBlockBlobReference(name.Replace(".jpg", "_thumb.jpg"));
+                // check to see if a thumbnail already exists, and if so, exit.
+                var thumb = container.GetBlockBlobReference(name.Replace(fileExtension, $"_thumb{fileExtension}"));
                 log.LogInformation("Processing thumbnail with URL: {url}", thumb.Uri);
                 if (await thumb.ExistsAsync())
                 {
                     log.LogInformation("Thumbnail already exists.");
                     return false;
                 }
+
                 using (var thumbStream = new MemoryStream())
                 {
                     var image = Image.FromStream(inputStream);
                     var abortCallback = new Image.GetThumbnailImageAbort(ThumbnailCallback);
                     var thumbnailImage = image.GetThumbnailImage(200, 200, abortCallback, IntPtr.Zero);
-                    thumbnailImage.Save(thumbStream, ImageFormat.Jpeg);
+                    thumbnailImage.Save(thumbStream, (fileExtension.Equals(".png")) ? ImageFormat.Png : ImageFormat.Jpeg);
                     thumbStream.Position = 0;
                     await thumb.UploadFromStreamAsync(thumbStream);
                 }
-                thumb.Properties.ContentType = "image/jpeg";
+                thumb.Properties.ContentType = (fileExtension.Equals(".png")) ? "image/png" : "image/jpeg";
                 await thumb.SetPropertiesAsync();
 
                 // transfer description if one exists
