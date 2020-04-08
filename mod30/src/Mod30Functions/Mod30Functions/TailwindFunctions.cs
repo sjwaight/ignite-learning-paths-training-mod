@@ -28,7 +28,7 @@ namespace Mod30Functions
 
         [FunctionName(nameof(MakeThumbnailHttp))]
         public static async Task<IActionResult> MakeThumbnailHttp(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
@@ -74,7 +74,7 @@ namespace Mod30Functions
 
         [FunctionName(nameof(GetWishlist))]
         public static async Task<IActionResult> GetWishlist(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]
             HttpRequest req,
             ILogger log)
         {
@@ -127,7 +127,7 @@ namespace Mod30Functions
 
         [FunctionName(nameof(UpdateDescription))]
         public static async Task<IActionResult> UpdateDescription(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("UpdateDescription invoked.");
