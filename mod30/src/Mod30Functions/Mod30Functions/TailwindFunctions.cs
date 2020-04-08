@@ -85,7 +85,7 @@ namespace Mod30Functions
             }
 
             var today = DateTime.Now.ToString("YYYYMMdd");
-            var todaysContainer = $"{CONTAINER}-{today}";
+            var todaysContainer = $"{CONTAINER}{today}";
 
             var result = new List<object>();
             var account = CloudStorageAccount.Parse(ConnectionString);
@@ -151,7 +151,7 @@ namespace Mod30Functions
             try
             {
                 var today = DateTime.Now.ToString("YYYYMMdd");
-                var todaysContainer = $"{CONTAINER}-{today}";
+                var todaysContainer = $"{CONTAINER}{today}";
 
                 var uri = new Uri(blob);
                 var cloudBlob = new CloudBlob(uri);
@@ -181,7 +181,7 @@ namespace Mod30Functions
            ILogger log)
         {
             var today = DateTime.Now.ToString("YYYYMMdd");
-            var todaysContainer = $"{CONTAINER}-{today}";
+            var todaysContainer = $"{CONTAINER}{today}";
             var account = CloudStorageAccount.Parse(ConnectionString);
             var client = account.CreateCloudBlobClient();
             var container = client.GetContainerReference(CONTAINER);
@@ -208,8 +208,8 @@ namespace Mod30Functions
 
             var yesterday = DateTime.Now.AddDays(-1).ToString("YYYYMMdd");
             var today = DateTime.Now.ToString("YYYYMMdd");
-            var yesterdaysContainer = $"{CONTAINER}-{yesterday}";
-            var todaysContainer = $"{CONTAINER}-{today}";
+            var yesterdaysContainer = $"{CONTAINER}{yesterday}";
+            var todaysContainer = $"{CONTAINER}{today}";
 
             var result = new List<object>();
             var account = CloudStorageAccount.Parse(ConnectionString);
@@ -221,7 +221,12 @@ namespace Mod30Functions
 
             // create new container for today
             var createContainer = client.GetContainerReference(todaysContainer);
-            await createContainer.CreateIfNotExistsAsync();
+            await createContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Container,);
+
+            BlobContainerPermissions permissions = await createContainer.GetPermissionsAsync();
+            // allow files to be read by anonymous users so our demo works
+            permissions.PublicAccess = BlobContainerPublicAccessType.Container;
+            await createContainer.SetPermissionsAsync(permissions);
         }
 
         private static async Task UpdateMetadata(CloudBlockBlob blob, string description)
@@ -245,7 +250,7 @@ namespace Mod30Functions
                 return false;
             }
             var today = DateTime.Now.ToString("YYYYMMdd");
-            var todaysContainer = $"{CONTAINER}-{today}";
+            var todaysContainer = $"{CONTAINER}{today}";
             
             var uri = new Uri(url);
             var cloudBlob = new CloudBlob(uri);
