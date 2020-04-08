@@ -221,7 +221,7 @@ namespace Mod30Functions
 
             // create new container for today
             var createContainer = client.GetContainerReference(todaysContainer);
-            await createContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Container,);
+            await createContainer.CreateIfNotExistsAsync();
 
             BlobContainerPermissions permissions = await createContainer.GetPermissionsAsync();
             // allow files to be read by anonymous users so our demo works
