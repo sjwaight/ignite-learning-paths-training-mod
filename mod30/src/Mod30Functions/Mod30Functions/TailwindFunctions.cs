@@ -83,10 +83,14 @@ namespace Mod30Functions
             {
                 throw new ArgumentNullException(nameof(req));
             }
+
+            var today = DateTime.Now.ToString("YYYY-MM-dd");
+            var todaysContainer = $"{CONTAINER}-{today}";
+
             var result = new List<object>();
             var account = CloudStorageAccount.Parse(ConnectionString);
             var client = account.CreateCloudBlobClient();
-            var container = client.GetContainerReference(CONTAINER);
+            var container = client.GetContainerReference(todaysContainer);
             BlobContinuationToken continuationToken = null;
             do
             {
@@ -146,12 +150,15 @@ namespace Mod30Functions
             }
             try
             {
+                var today = DateTime.Now.ToString("YYYY-MM-dd");
+                var todaysContainer = $"{CONTAINER}-{today}";
+
                 var uri = new Uri(blob);
                 var cloudBlob = new CloudBlob(uri);
                 var name = cloudBlob.Name;
                 var account = CloudStorageAccount.Parse(ConnectionString);
                 var client = account.CreateCloudBlobClient();
-                var container = client.GetContainerReference(CONTAINER);
+                var container = client.GetContainerReference(todaysContainer);
                 var blockBlob = container.GetBlockBlobReference(name);
                 var fileExtension = name.Substring(name.LastIndexOf("."));
                 var otherBlob = container.GetBlockBlobReference(name.Replace(fileExtension, $"_thumb{fileExtension}"));
@@ -173,6 +180,8 @@ namespace Mod30Functions
            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
            ILogger log)
         {
+            var today = DateTime.Now.ToString("YYYY-MM-dd");
+            var todaysContainer = $"{CONTAINER}-{today}";
             var account = CloudStorageAccount.Parse(ConnectionString);
             var client = account.CreateCloudBlobClient();
             var container = client.GetContainerReference(CONTAINER);
@@ -187,6 +196,32 @@ namespace Mod30Functions
             var sas = container.GetSharedAccessSignature(blobPolicy);
 
             return new OkObjectResult(sas);
+        }
+
+        [FunctionName(nameof(PurgeBlobsDaily))]
+        public static async Task PurgeBlobsDaily(
+            [TimerTrigger("0 30 1 * * *")]TimerInfo theTimer, 
+            ILogger log
+        )
+        {
+            log.LogInformation("PurgeBlobsDaily invoked.");
+
+            var yesterday = DateTime.Now.AddDays(-1).ToString("YYYY-MM-dd");
+            var today = DateTime.Now.ToString("YYYY-MM-dd");
+            var yesterdaysContainer = $"{CONTAINER}-{yesterday}";
+            var todaysContainer = $"{CONTAINER}-{today}";
+
+            var result = new List<object>();
+            var account = CloudStorageAccount.Parse(ConnectionString);
+            var client = account.CreateCloudBlobClient();
+
+            // delete the container from yesterday
+            var deletecontainer = client.GetContainerReference(yesterdaysContainer);
+            await deletecontainer.DeleteIfExistsAsync();
+
+            // create new container for today
+            var createContainer = client.GetContainerReference(todaysContainer);
+            await createContainer.CreateIfNotExistsAsync();
         }
 
         private static async Task UpdateMetadata(CloudBlockBlob blob, string description)
