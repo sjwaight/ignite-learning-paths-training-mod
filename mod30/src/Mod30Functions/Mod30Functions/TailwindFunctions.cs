@@ -84,7 +84,7 @@ namespace Mod30Functions
                 throw new ArgumentNullException(nameof(req));
             }
 
-            var today = DateTime.Now.ToString("YYYYMMdd");
+            var today = DateTime.Now.ToString("yyyyMMdd");
             var todaysContainer = $"{CONTAINER}{today}";
 
             var result = new List<object>();
@@ -150,7 +150,7 @@ namespace Mod30Functions
             }
             try
             {
-                var today = DateTime.Now.ToString("YYYYMMdd");
+                var today = DateTime.Now.ToString("yyyyMMdd");
                 var todaysContainer = $"{CONTAINER}{today}";
 
                 var uri = new Uri(blob);
@@ -175,29 +175,6 @@ namespace Mod30Functions
             }
         }
 
-        [FunctionName(nameof(GetSASToken))]
-        public static IActionResult GetSASToken(
-           [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
-           ILogger log)
-        {
-            var today = DateTime.Now.ToString("YYYYMMdd");
-            var todaysContainer = $"{CONTAINER}{today}";
-            var account = CloudStorageAccount.Parse(ConnectionString);
-            var client = account.CreateCloudBlobClient();
-            var container = client.GetContainerReference(CONTAINER);
-
-            var blobPolicy = new SharedAccessBlobPolicy
-            {
-                SharedAccessStartTime = DateTime.UtcNow.AddMinutes(-5),
-                SharedAccessExpiryTime = DateTime.UtcNow.AddMinutes(20),
-                Permissions = SharedAccessBlobPermissions.Create | SharedAccessBlobPermissions.Read | SharedAccessBlobPermissions.Write | SharedAccessBlobPermissions.List
-            };
-
-            var sas = container.GetSharedAccessSignature(blobPolicy);
-
-            return new OkObjectResult(sas);
-        }
-
         [FunctionName(nameof(PurgeBlobsDaily))]
         public static async Task PurgeBlobsDaily(
             [TimerTrigger("0 30 1 * * *")]TimerInfo theTimer, 
@@ -206,8 +183,8 @@ namespace Mod30Functions
         {
             log.LogInformation("PurgeBlobsDaily invoked.");
 
-            var yesterday = DateTime.Now.AddDays(-1).ToString("YYYYMMdd");
-            var today = DateTime.Now.ToString("YYYYMMdd");
+            var yesterday = DateTime.Now.AddDays(-1).ToString("yyyyMMdd");
+            var today = DateTime.Now.ToString("yyyyMMdd");
             var yesterdaysContainer = $"{CONTAINER}{yesterday}";
             var todaysContainer = $"{CONTAINER}{today}";
 
@@ -224,7 +201,7 @@ namespace Mod30Functions
             await createContainer.CreateIfNotExistsAsync();
 
             BlobContainerPermissions permissions = await createContainer.GetPermissionsAsync();
-            // allow files to be read by anonymous users so our demo works
+            // allow files to be read by anonymous users so our demo web app works
             permissions.PublicAccess = BlobContainerPublicAccessType.Container;
             await createContainer.SetPermissionsAsync(permissions);
         }
@@ -249,7 +226,7 @@ namespace Mod30Functions
                 log.LogInformation("URL passed is thumbnail.");
                 return false;
             }
-            var today = DateTime.Now.ToString("YYYYMMdd");
+            var today = DateTime.Now.ToString("yyyyMMdd");
             var todaysContainer = $"{CONTAINER}{today}";
             
             var uri = new Uri(url);
