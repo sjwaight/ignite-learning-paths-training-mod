@@ -226,9 +226,18 @@ namespace Mod30Functions
                 log.LogInformation("URL passed is thumbnail.");
                 return false;
             }
+           
+            // make sure we only read files from right container, particularly in Functions log to same storage account
             var today = DateTime.Now.ToString("yyyyMMdd");
             var todaysContainer = $"{CONTAINER}{today}";
             
+            if(!url.Contains(todaysContainer))
+            {
+                // we don't try and create a thumbnail from an existing thumbnail
+            log.LogInformation("Event not triggered by blob in container we handle.");
+            return false;
+            }
+
             var uri = new Uri(url);
             var cloudBlob = new CloudBlob(uri);
             var name = cloudBlob.Name;
